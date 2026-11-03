@@ -1,0 +1,4 @@
+# Headless LangGraph runtime + the single M2.1 qualification provider/model stack.
+-r requirements-m1.txt
+tavily-python>=0.5,<1
+langchain-ollama>=0.2,<2
