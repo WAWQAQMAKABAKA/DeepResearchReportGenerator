@@ -1,0 +1,4 @@
+# Headless verification only; no Streamlit, Tavily, or model API needed.
+pydantic>=2.10,<3
+langgraph>=0.3,<2
+pytest>=8,<10

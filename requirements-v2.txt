@@ -1,0 +1,7 @@
+pydantic>=2.10,<3
+langgraph>=0.3,<2
+streamlit>=1.33
+tavily-python>=0.5,<1
+langchain-ollama>=0.2,<2
+langchain-google-genai>=2.1,<4
+pytest>=8,<10
