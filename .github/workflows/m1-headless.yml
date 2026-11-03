@@ -1,0 +1,45 @@
+name: M1.1 headless research validation
+
+on:
+  push:
+    branches: [feat/v2-m1-evidence-linked-comparison]
+  pull_request:
+    paths:
+      - "deepresearch_v2/**"
+      - "tests/**"
+      - "requirements-m1.txt"
+      - ".github/workflows/m1-headless.yml"
+  workflow_dispatch:
+
+jobs:
+  offline:
+    name: Headless integration / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install minimal headless dependencies
+        run: python -m pip install -r requirements-m1.txt
+      - name: Confirm real LangGraph dependency
+        run: python -c "from langgraph.graph import StateGraph; print('LangGraph import verified')"
+      - name: Execute offline regression suite
+        run: python -m pytest -q tests/test_m1.py tests/test_headless.py
+      - name: Produce headless report twice and compare bytes
+        shell: bash
+        run: |
+          python -m deepresearch_v2 --engine graph --output-dir "$RUNNER_TEMP/m1-first"
+          python -m deepresearch_v2 --engine graph --output-dir "$RUNNER_TEMP/m1-second"
+          cmp "$RUNNER_TEMP/m1-first/report.json" "$RUNNER_TEMP/m1-second/report.json"
+          cmp "$RUNNER_TEMP/m1-first/report.md" "$RUNNER_TEMP/m1-second/report.md"
+      - name: Upload synthetic outputs for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-synthetic-python-${{ matrix.python-version }}
+          path: ${{ runner.temp }}/m1-first/
