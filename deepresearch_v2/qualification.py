@@ -18,7 +18,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from .core import ExtractionBatch, ResearchReport, ResearchRequest, Source, markdown_table, run_research
+from .core import (ExtractionBatch, ResearchReport, ResearchRequest, Source,
+                   candidate_rejection_reason, markdown_table, run_research)
 from .live import LangChainExtractor, PROMPT_VERSION, TavilyRetriever
 from .public_benchmark import CuratedExtractor, SnapshotRetriever, load_snapshot
 
@@ -184,8 +185,49 @@ def _compose_engine(request: ResearchRequest, retriever: Any, extractor: Any, en
     raise ValueError(f"Unknown engine: {engine}")
 
 
-def _save_result(report: ResearchReport, run_dir: Path, *, gold: dict[str, Any] | None = None) -> dict[str, Any]:
+def candidate_diagnostics(
+    request: ResearchRequest, sources: list[Source], batch: ExtractionBatch
+) -> dict[str, Any]:
+    """Explain all candidate decisions, using the SAME predicate as composition."""
+    items: list[dict[str, Any]] = []
+    breakdown: dict[str, int] = {}
+    for i, candidate in enumerate(batch.items, start=1):
+        reason = candidate_rejection_reason(request, sources, candidate)
+        if reason is not None:
+            breakdown[reason] = breakdown.get(reason, 0) + 1
+        items.append({
+            "index": i,
+            "company": candidate.company,
+            "field": candidate.field,
+            "source_id": candidate.source_id,
+            "status": "rejected" if reason is not None else "accepted",
+            "reason": reason,
+        })
+    return {
+        "candidate_count": len(batch.items),
+        "accepted_count": sum(item["status"] == "accepted" for item in items),
+        "rejected_count": sum(breakdown.values()),
+        "rejection_breakdown": dict(sorted(breakdown.items())),
+        "items": items,
+        "warning": "Lexical checks only; accepted claims remain semantically unreviewed.",
+    }
+
+
+def _save_result(
+    report: ResearchReport,
+    run_dir: Path,
+    *,
+    gold: dict[str, Any] | None = None,
+    batch: ExtractionBatch | None = None,
+) -> dict[str, Any]:
     metrics = structural_metrics(report, gold=gold)
+    if batch is not None:
+        diagnostics = candidate_diagnostics(report.request, report.sources, batch)
+        if (diagnostics["accepted_count"] != len(report.claims)
+                or diagnostics["rejected_count"] != report.rejected_candidates):
+            raise ValueError("Candidate diagnostics and report validation differ")
+        metrics["rejection_breakdown"] = diagnostics["rejection_breakdown"]
+        _json_file(run_dir / "candidate_diagnostics.json", diagnostics)
     _json_file(run_dir / "report.json", report.model_dump(mode="json"))
     (run_dir / "report.md").write_text(
         "*Qualification output: source-reported claims are UNREVIEWED, not verified facts.*\n\n"
@@ -215,7 +257,11 @@ def qualify_run(
             _RecordingExtractor(extractor, run_dir),
             engine,
         )
-        metrics = _save_result(report, run_dir, gold=gold)
+        captured = _read_json(run_dir / "candidates.json")
+        metrics = _save_result(
+            report, run_dir, gold=gold,
+            batch=ExtractionBatch.model_validate(captured["batch"]),
+        )
         _json_file(run_dir / "status.json", {"status": "completed_unreviewed", "mode": mode, "engine": engine})
         return metrics
     except Exception as exc:
@@ -269,7 +315,7 @@ def replay_run(run_dir: Path, output_dir: Path, *, engine: str = "graph") -> dic
     request, sources, batch = load_recorded_run(run_dir)
     output_dir.mkdir(parents=True, exist_ok=False)
     report = _compose_engine(request, _RecordedRetriever(request, sources), _RecordedExtractor(batch), engine)
-    return _save_result(report, output_dir)
+    return _save_result(report, output_dir, batch=batch)
 
 
 def review_run(report_path: Path, label_path: Path, output_path: Path) -> dict[str, Any]:

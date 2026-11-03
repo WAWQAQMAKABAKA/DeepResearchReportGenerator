@@ -148,6 +148,33 @@ class Extractor(Protocol):
     def extract(self, request: ResearchRequest, sources: list[Source]) -> ExtractionBatch: ...
 
 
+def candidate_rejection_reason(
+    request: ResearchRequest, sources: list[Source], item: Candidate
+) -> str | None:
+    """Return the FIRST deterministic rejection reason, or None if accepted.
+
+    Exact same checks as compose_report; this is lexical reference validation,
+    not semantic entailment. Never silently map vendor aliases to study names.
+    """
+    canonical_company = next(
+        (name for name in request.companies if name.casefold() == item.company.casefold()), None
+    )
+    if canonical_company is None:
+        return "unknown_company"
+    source = next((s for s in sources if s.id == item.source_id), None)
+    if source is None:
+        return "unknown_source_id"
+    if source.company != canonical_company:
+        return "source_company_mismatch"
+    if not item.value.strip():
+        return "empty_value"
+    if _normalized(item.quote) not in _normalized(source.text):
+        return "quote_not_verbatim"
+    if _value_span(item.value) not in _value_span(item.quote):
+        return "value_not_in_quote"
+    return None
+
+
 def compose_report(request: ResearchRequest, sources: list[Source], batch: ExtractionBatch) -> ResearchReport:
     """Reject unverifiable candidates, retain conflicts, and compose a deterministic table."""
     source_map = {s.id: s for s in sources}
@@ -158,13 +185,12 @@ def compose_report(request: ResearchRequest, sources: list[Source], batch: Extra
     claims: list[Claim] = []
     rejected = 0
     for item in batch.items:
-        canonical_company = company_map.get(item.company.casefold())
-        source = source_map.get(item.source_id)
-        if (canonical_company is None or source is None or source.company != canonical_company
-                or not item.value.strip() or _normalized(item.quote) not in _normalized(source.text)
-                or _value_span(item.value) not in _value_span(item.quote)):
+        reason = candidate_rejection_reason(request, sources, item)
+        if reason is not None:
             rejected += 1
             continue
+        canonical_company = company_map[item.company.casefold()]
+        source = source_map[item.source_id]
         eid, cid = f"E{len(evidence) + 1}", f"C{len(claims) + 1}"
         evidence.append(Evidence(id=eid, source_id=source.id, quote=item.quote))
         claim = Claim(id=cid, company=canonical_company, field=item.field,
