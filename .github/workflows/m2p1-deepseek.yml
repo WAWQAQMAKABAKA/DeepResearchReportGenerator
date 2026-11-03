@@ -1,0 +1,45 @@
+name: M2.1 DeepSeek API adapter (offline tests)
+on:
+  push:
+    branches: [feat/v2-m2p1-deepseek-provider]
+  pull_request:
+    paths:
+      - 'deepresearch_v2/**'
+      - 'tests/**'
+      - 'requirements-deepseek.txt'
+      - '.github/workflows/m2p1-deepseek.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install DeepSeek and headless graph dependencies
+        run: python -m pip install -r requirements-deepseek.txt
+      - name: Initialize actual DeepSeek SDK without network requests
+        env:
+          DEEPSEEK_API_KEY: ci-placeholder-no-live-request
+        run: |
+          python - <<'PY'
+          from deepresearch_v2.live import LangChainExtractor
+          assert LangChainExtractor(provider="deepseek", model="deepseek-flash").provider == "deepseek"
+          print("DeepSeek model schema construction succeeds without a network call")
+          PY
+      - name: Run full regression and DeepSeek mocked contracts
+        run: python -m pytest -q tests/test_m1.py tests/test_headless.py tests/test_public_benchmark.py tests/test_qualification.py tests/test_deepseek_provider.py
+      - name: Replay pinned corpus through actual LangGraph
+        shell: bash
+        run: |
+          python -m deepresearch_v2.qualification oracle-fixture --engine graph --output-dir "$RUNNER_TEMP/a"
+          python -m deepresearch_v2.qualification replay --engine graph --run-dir "$RUNNER_TEMP/a" --output-dir "$RUNNER_TEMP/b"
+          cmp "$RUNNER_TEMP/a/report.json" "$RUNNER_TEMP/b/report.json"
+          cmp "$RUNNER_TEMP/a/report.md" "$RUNNER_TEMP/b/report.md"

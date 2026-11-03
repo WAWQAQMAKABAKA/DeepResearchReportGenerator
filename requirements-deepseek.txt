@@ -1,0 +1,4 @@
+# Cloud-only DeepSeek API extraction; local Ollama is not required.
+-r requirements-m1.txt
+langchain-deepseek>=1.0,<2
+tavily-python>=0.5,<1

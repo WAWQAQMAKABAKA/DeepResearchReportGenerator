@@ -147,9 +147,27 @@ class LangChainExtractor:
             elif provider == "gemini":
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 client = ChatGoogleGenerativeAI(model=model, temperature=0)
+            elif provider == "deepseek":
+                # API key is read by the SDK from DEEPSEEK_API_KEY; never persist it.
+                from langchain_deepseek import ChatDeepSeek
+                # DeepSeek Flash defaults to thinking mode; forced/named tool_choice
+                # (used by Pydantic function_calling) is rejected with HTTP 400
+                # unless thinking is explicitly disabled on the Chat Completions API.
+                client = ChatDeepSeek(
+                    model=model,
+                    temperature=0,
+                    extra_body={"thinking": {"type": "disabled"}},
+                )
             else:
-                raise ValueError("model provider must be ollama or gemini")
-            structured_model = client.with_structured_output(ExtractionBatch, include_raw=True)
+                raise ValueError("model provider must be ollama, gemini or deepseek")
+            if provider == "deepseek":
+                # Function calling is supported by the DeepSeek Chat API.
+                # Do not equate structured output with evidence entailment.
+                structured_model = client.with_structured_output(
+                    ExtractionBatch, method="function_calling", include_raw=True
+                )
+            else:
+                structured_model = client.with_structured_output(ExtractionBatch, include_raw=True)
         self.structured_model = structured_model
 
     def extract(self, request: ResearchRequest, sources: list[Source]) -> ExtractionBatch:
