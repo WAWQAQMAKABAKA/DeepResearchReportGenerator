@@ -28,8 +28,12 @@ class FakeDeepSeek:
     instances = []
     structured_calls = []
 
-    def __init__(self, *, model, temperature):
-        self.instances.append((model, temperature))
+    def __init__(self, *, model, temperature, extra_body):
+        # Reproduce the DeepSeek API constraint without making a network call:
+        # Pydantic function-calling forces a named tool_choice, which DeepSeek
+        # rejects if thinking mode is active (its default).
+        assert extra_body == {"thinking": {"type": "disabled"}}
+        self.instances.append((model, temperature, extra_body))
 
     def with_structured_output(self, schema, *, method, include_raw):
         self.structured_calls.append((schema, method, include_raw))
@@ -54,8 +58,21 @@ def test_structured_deepseek_binding(monkeypatch):
     _inject(monkeypatch)
     adapter = LangChainExtractor(provider="deepseek", model="deepseek-flash")
     assert isinstance(adapter.structured_model, FakeRun)
-    assert FakeDeepSeek.instances == [("deepseek-flash", 0)]
+    assert FakeDeepSeek.instances == [("deepseek-flash", 0, {"thinking": {"type": "disabled"}})]
     assert FakeDeepSeek.structured_calls == [(ExtractionBatch, "function_calling", True)]
+
+
+
+
+def test_deepseek_tool_forcing_requires_non_thinking_mode(monkeypatch):
+    """Regression for HTTP 400: thinking mode rejects forced tool_choice."""
+    _inject(monkeypatch)
+    LangChainExtractor(provider="deepseek", model="deepseek-flash")
+    assert FakeDeepSeek.instances[-1][2]["thinking"]["type"] == "disabled"
+    # Keep function calling mandatory; do not weaken tool_choice to auto.
+    assert FakeDeepSeek.structured_calls[-1] == (
+        ExtractionBatch, "function_calling", True
+    )
 
 
 def test_mock_deepseek_capture_trace_and_replay(monkeypatch, tmp_path):

@@ -44,3 +44,29 @@ If your existing working tree contains uncommitted work, inspect `git status` be
 ## Next acceptance test
 
 A genuine run on your machine with your existing DeepSeek key, plus manually reviewed claim-to-passage support labels. CI tests only import/instantiate the real SDK and exercise **mocked responses**; they do not call DeepSeek's billable endpoint or demonstrate semantic reliability. For full research later, the existing `live` subcommand also requires `TAVILY_API_KEY` (or explicitly enabled keyless mode).
+
+
+## DeepSeek 400: thinking mode vs forced Pydantic tools
+
+The default `deepseek-flash` mode is **thinking enabled**. A LangChain
+`with_structured_output(method="function_calling")` schema forces a named tool;
+DeepSeek's Chat Completions API rejects that with HTTP 400 and the message
+`Thinking mode does not support this tool_choice`. The DeepSeek adapter now
+explicitly passes `extra_body={"thinking": {"type": "disabled"}}` when using
+Pydantic extraction. This keeps forced tool selection, instead of changing to
+unreliable `tool_choice=auto`. Only DeepSeek is affected; Ollama/Gemini paths
+remain unchanged.
+
+If an earlier attempt failed, the output directory was intentionally created
+and `status.json` should say `failed`; do **not** reuse that directory.
+After `git pull --ff-only`, choose a fresh directory such as
+`build/m2p1-deepseek-flash-002`. Verify the existing shell exports
+`DEEPSEEK_API_KEY` without displaying it:
+
+```bash
+[ -n "$DEEPSEEK_API_KEY" ] && echo "DeepSeek key configured" || echo "Key missing"
+```
+
+The CI regression tests verify this *client configuration*. They do not make
+a real DeepSeek API request. A successful user-run extraction and subsequent
+human review remain necessary for qualification.

@@ -150,7 +150,14 @@ class LangChainExtractor:
             elif provider == "deepseek":
                 # API key is read by the SDK from DEEPSEEK_API_KEY; never persist it.
                 from langchain_deepseek import ChatDeepSeek
-                client = ChatDeepSeek(model=model, temperature=0)
+                # DeepSeek Flash defaults to thinking mode; forced/named tool_choice
+                # (used by Pydantic function_calling) is rejected with HTTP 400
+                # unless thinking is explicitly disabled on the Chat Completions API.
+                client = ChatDeepSeek(
+                    model=model,
+                    temperature=0,
+                    extra_body={"thinking": {"type": "disabled"}},
+                )
             else:
                 raise ValueError("model provider must be ollama, gemini or deepseek")
             if provider == "deepseek":
