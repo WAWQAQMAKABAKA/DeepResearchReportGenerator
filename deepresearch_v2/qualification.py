@@ -308,7 +308,7 @@ def _parser() -> argparse.ArgumentParser:
         p = sub.add_parser(mode)
         p.add_argument("--output-dir", required=True, type=Path)
         p.add_argument("--engine", choices=("graph", "direct"), default="graph")
-        p.add_argument("--model-provider", choices=("ollama", "gemini"), default="ollama")
+        p.add_argument("--model-provider", choices=("ollama", "gemini", "deepseek"), default="ollama")
         p.add_argument("--model", required=True, help="Explicit model ID; configured externally")
         if mode == "live":
             p.add_argument("--question", required=True)
