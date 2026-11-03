@@ -43,3 +43,20 @@ The original shared repository `shayantist/STAT5243-DeepResearch` remains unchan
 ## Later work (not part of M1.1)
 
 Once headless LangGraph is reproducible, verify a bounded live retrieval/extraction run with three actual companies, snapshot sources for replay, and evaluate claim-to-evidence semantic support. Only then extend the report with a sourced timeline and narrative, and subsequently build a UI.
+
+
+## M2 — First public-source excerpt replay (3 real AI coding agents)
+
+This is a **bounded public-data experiment**, not live model extraction. Official webpages were manually inspected via web retrieval on 2026-11-03; this environment does not permit direct HTTP retrieval and has no Tavily/model API credentials. To keep the experiment independently replayable, `fixtures/ai_coding_agents_2026-11-03.json` stores eight short source passages and nine manually curated candidate claims. Each passage has an official URL, a captured date, and a source-published date where known. `deepresearch_v2/public_benchmark.py` runs these through the unchanged production validator/composer via the actual LangGraph pipeline.
+
+```bash
+python -m pip install -r requirements-m1.txt
+python -m pytest -q tests/test_m1.py tests/test_headless.py tests/test_public_benchmark.py
+python -m deepresearch_v2.public_benchmark --engine graph --output-dir build/m2-public-snapshot
+```
+
+Generated outputs: `report.json` (eight Source records, nine evidence-linked Claim records, three CompanyProfiles), `report.md` (table), and `evaluation.json` (8/9/24 counts, source text digests, qualification flags). The CI workflow `.github/workflows/m2-public-replay.yml` checks Python 3.11/3.13 and byte-for-byte deterministic outputs. **All source documents are first-party but their claims may be vendor assertions, not independently verified facts.** The historical December 2024 Devin $500/month article is preserved as evidence of prior pricing, not used as current pricing because the official April 2026 announcement describes new plans. The current price entries are for different tiers/usage bundles and are **not comparable unit costs**.
+
+### Boundaries and what is still needed
+
+The extraction fixture is human curated (an *oracle*), and the replay does not test Tavily retrieval, LLM extraction accuracy, fresh HTTP fetching, or semantic entailment. Test `test_known_limitation_lexical_validator_not_semantic_entailment` intentionally proves that the current lexical validator accepts a statement contradicted by a negation in the same quote. Therefore a green CI run does **not** establish real-world agent reliability. Next gate: configure one approved retrieval/model integration, save the complete fetched source passages with timestamps and hashes (under an appropriate retention/copyright policy), run bounded model extraction, and manually label evidence entailment on the resulting claims before extending the report/UI.
