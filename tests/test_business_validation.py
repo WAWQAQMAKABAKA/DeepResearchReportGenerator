@@ -48,7 +48,7 @@ def test_numeric_units_precision_no_tolerance_inflation():
         "$16525.00", "16525", "How much current assets? Answer in USD millions."
     )
     assert nike.status == "exact"
-    assert nike.predicted == nike.reference
+    assert Decimal(nike.predicted) == Decimal(nike.reference)
 
     turnover = compare_numeric(
         "SampleCo sold inventory 2.7 times in FY2022.",
@@ -142,7 +142,7 @@ def test_unknown_or_duplicate_citation_ids_fail_validation():
     case = example(question="Some question?", gold="10", evidence_text="Value 10")
     with pytest.raises(ValueError, match="Unknown evidence"):
         audit_case(case, answer("10", "From E7", ids=["E7"]))
-    with pytest.raises(ValueError, match="Duplicate evidence"):
+    with pytest.raises(ValueError, match="Duplicate cited evidence IDs"):
         audit_case(case, answer("10", "Duplicate", ids=["E1", "E1"]))
 
 
