@@ -103,7 +103,7 @@ def load_data(dataset: Path) -> tuple[str, list[Case]]:
             excerpts.append(Excerpt(
                 id=f"E{j}",
                 text=evidence.get("evidence_text"),
-                doc_name=evidence.get("evidence_doc_name"),
+                doc_name=evidence.get("doc_name") or evidence.get("evidence_doc_name") or record.get("doc_name"),
                 page=evidence.get("evidence_page_num"),
             ))
         records.append(Case(
