@@ -22,6 +22,7 @@ from .core import (ExtractionBatch, ResearchReport, ResearchRequest, Source,
                    candidate_rejection_reason, markdown_table, run_research)
 from .live import LangChainExtractor, PROMPT_VERSION, TavilyRetriever
 from .public_benchmark import CuratedExtractor, SnapshotRetriever, load_snapshot
+from .quality_flags import flag_claims_for_review
 
 SCHEMA_VERSION = "m2.1-v1"
 
@@ -228,6 +229,11 @@ def _save_result(
             raise ValueError("Candidate diagnostics and report validation differ")
         metrics["rejection_breakdown"] = diagnostics["rejection_breakdown"]
         _json_file(run_dir / "candidate_diagnostics.json", diagnostics)
+    review_triggers = flag_claims_for_review(report)
+    metrics["claims_with_review_triggers"] = review_triggers.flagged_claims
+    metrics["review_trigger_counts"] = review_triggers.by_code
+    metrics["review_triggers_are_verdicts"] = False
+    _json_file(run_dir / "quality_flags.json", review_triggers.model_dump(mode="json"))
     _json_file(run_dir / "report.json", report.model_dump(mode="json"))
     (run_dir / "report.md").write_text(
         "*Qualification output: source-reported claims are UNREVIEWED, not verified facts.*\n\n"

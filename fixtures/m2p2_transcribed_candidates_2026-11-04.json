@@ -1,0 +1,127 @@
+{
+  "fixture_kind": "user_terminal_transcription_not_raw_api_capture",
+  "study": "cursor_copilot_devin_8_official_excerpts",
+  "transcript_date": "2026-11-04",
+  "caveat": "Reconstructed 17 Candidate records from the user's pasted M2.2 terminal report; does not contain or replace recorded raw provider response, prompt token usage, or timestamps.",
+  "candidates": [
+    {
+      "company": "Cursor",
+      "field": "product",
+      "value": "Agent is Cursor's AI assistant",
+      "source_id": "S1",
+      "quote": "Agent is Cursor's AI assistant."
+    },
+    {
+      "company": "Cursor",
+      "field": "features",
+      "value": "searches your codebase",
+      "source_id": "S1",
+      "quote": "It searches your codebase, edits multiple files, runs terminal commands, and fixes errors on its own."
+    },
+    {
+      "company": "Cursor",
+      "field": "features",
+      "value": "edits multiple files",
+      "source_id": "S1",
+      "quote": "It searches your codebase, edits multiple files, runs terminal commands, and fixes errors on its own."
+    },
+    {
+      "company": "Cursor",
+      "field": "features",
+      "value": "runs terminal commands",
+      "source_id": "S1",
+      "quote": "It searches your codebase, edits multiple files, runs terminal commands, and fixes errors on its own."
+    },
+    {
+      "company": "Cursor",
+      "field": "features",
+      "value": "fixes errors on its own",
+      "source_id": "S1",
+      "quote": "It searches your codebase, edits multiple files, runs terminal commands, and fixes errors on its own."
+    },
+    {
+      "company": "Cursor",
+      "field": "pricing",
+      "value": "$30/month",
+      "source_id": "S2",
+      "quote": "Most popular\n\n$30/month"
+    },
+    {
+      "company": "GitHub Copilot",
+      "field": "product",
+      "value": "asynchronous, autonomous developer agent",
+      "source_id": "S3",
+      "quote": "Copilot coding agent, our asynchronous, autonomous developer agent, is now generally available for all paid Copilot subscribers."
+    },
+    {
+      "company": "GitHub Copilot",
+      "field": "target_customers",
+      "value": "all paid Copilot subscribers",
+      "source_id": "S3",
+      "quote": "Copilot coding agent, our asynchronous, autonomous developer agent, is now generally available for all paid Copilot subscribers."
+    },
+    {
+      "company": "GitHub Copilot",
+      "field": "pricing",
+      "value": "$10 USD per user / month",
+      "source_id": "S4",
+      "quote": "$10 USD per user / month"
+    },
+    {
+      "company": "GitHub Copilot",
+      "field": "target_customers",
+      "value": "For everyday coding with agents in GitHub Copilot",
+      "source_id": "S4",
+      "quote": "For everyday coding with agents in GitHub Copilot."
+    },
+    {
+      "company": "GitHub Copilot",
+      "field": "features",
+      "value": "runs in the background with GitHub Actions",
+      "source_id": "S5",
+      "quote": "It runs in the background with GitHub Actions and submits its work as a pull request."
+    },
+    {
+      "company": "GitHub Copilot",
+      "field": "features",
+      "value": "submits its work as a pull request",
+      "source_id": "S5",
+      "quote": "It runs in the background with GitHub Actions and submits its work as a pull request."
+    },
+    {
+      "company": "Devin",
+      "field": "features",
+      "value": "multiple parallel Devins",
+      "source_id": "S6",
+      "quote": "Spin up multiple parallel Devins, each equipped with its own interactive, cloud-based IDE."
+    },
+    {
+      "company": "Devin",
+      "field": "features",
+      "value": "interactive, cloud-based IDE",
+      "source_id": "S6",
+      "quote": "Spin up multiple parallel Devins, each equipped with its own interactive, cloud-based IDE."
+    },
+    {
+      "company": "Devin",
+      "field": "pricing",
+      "value": "$20/month",
+      "source_id": "S7",
+      "quote": "Pro — $20/month, with included quota"
+    },
+    {
+      "company": "Devin",
+      "field": "pricing",
+      "value": "$500 a month",
+      "source_id": "S8",
+      "quote": "Today we’re making Devin generally available starting at $500 a month for engineering teams, which includes:"
+    },
+    {
+      "company": "Devin",
+      "field": "target_customers",
+      "value": "engineering teams",
+      "source_id": "S8",
+      "quote": "Today we’re making Devin generally available starting at $500 a month for engineering teams, which includes:"
+    }
+  ]
+}
