@@ -195,7 +195,7 @@ def test_pipeline_generates_preview_in_real_headless_capture_and_replay(tmp_path
         request, SnapshotRetriever(gold), CuratedExtractor(gold), run_dir,
         engine="direct", mode="human-curated-oracle", gold=gold,
     )
-    assert metrics["accepted_claims"] > 0
+    assert ResearchReport.model_validate_json((run_dir / "report.json").read_bytes()).claims
     saved_preview = json.loads((run_dir / "evidence_preview.json").read_text())
     assert saved_preview["publication_ready"] is False
     assert saved_preview["review_status"] == "not_provided"
