@@ -60,7 +60,8 @@ def test_review_triggers_reproduce_observed_risks_without_rejecting():
         "C16": {"pricing_amount_without_tier", "historical_source_title"},
         "C17": {"historical_source_title"},
     }
-    assert "stale" not in diagnosis.model_dump_json()
+    assert diagnosis.assessment == "deterministic_review_triggers_not_verdicts"
+    assert not hasattr(diagnosis, "semantic_support_evaluated")
     assert report.claims[15].id == "C16"  # Flagging does not mutate/reject.
     assert report.components[0].kind == "comparison_table"
 
