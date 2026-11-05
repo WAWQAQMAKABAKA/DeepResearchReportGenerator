@@ -1,7 +1,7 @@
 name: M2.1 DeepSeek API adapter (offline tests)
 on:
   push:
-    branches: [feat/v2-m2p1-deepseek-provider, feat/v2-m2p2-extraction-contract, feat/v2-m2p3-review-flags, feat/v2-m2p4-review-gate, feat/v2-m2p5a-averitec-verdict-benchmark, feat/v2-m2p5b-financebench-oracle-qa, feat/v2-m2p6-business-answer-audit, feat/v2-m2p6p1-arithmetic-provenance]
+    branches: [feat/v2-m2p1-deepseek-provider, feat/v2-m2p2-extraction-contract, feat/v2-m2p3-review-flags, feat/v2-m2p4-review-gate, feat/v2-m2p5a-averitec-verdict-benchmark, feat/v2-m2p5b-financebench-oracle-qa, feat/v2-m2p6-business-answer-audit, feat/v2-m2p6p1-arithmetic-provenance, feat/v2-m2p7-evidence-preview]
   pull_request:
     paths:
       - 'deepresearch_v2/**'
@@ -35,7 +35,7 @@ jobs:
           print("DeepSeek model schema construction succeeds without a network call")
           PY
       - name: Run full regression and DeepSeek mocked contracts
-        run: python -m pytest -q tests/test_m1.py tests/test_headless.py tests/test_public_benchmark.py tests/test_qualification.py tests/test_deepseek_provider.py tests/test_candidate_diagnostics.py tests/test_quality_flags.py tests/test_review_gate.py tests/test_averitec_benchmark.py tests/test_financebench_benchmark.py tests/test_business_validation.py tests/test_arithmetic_provenance.py
+        run: python -m pytest -q tests/test_m1.py tests/test_headless.py tests/test_public_benchmark.py tests/test_qualification.py tests/test_deepseek_provider.py tests/test_candidate_diagnostics.py tests/test_quality_flags.py tests/test_review_gate.py tests/test_averitec_benchmark.py tests/test_financebench_benchmark.py tests/test_business_validation.py tests/test_arithmetic_provenance.py tests/test_evidence_preview.py
       - name: Replay pinned corpus through actual LangGraph
         shell: bash
         run: |
