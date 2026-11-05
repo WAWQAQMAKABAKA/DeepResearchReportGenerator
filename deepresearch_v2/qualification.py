@@ -23,6 +23,8 @@ from .core import (ExtractionBatch, ResearchReport, ResearchRequest, Source,
 from .live import LangChainExtractor, PROMPT_VERSION, TavilyRetriever
 from .public_benchmark import CuratedExtractor, SnapshotRetriever, load_snapshot
 from .quality_flags import flag_claims_for_review
+from .review_gate import (ReviewManifest, build_review_packet, build_review_template,
+                          evaluate_review_gate)
 
 SCHEMA_VERSION = "m2.1-v1"
 
@@ -335,6 +337,46 @@ def review_run(report_path: Path, label_path: Path, output_path: Path) -> dict[s
     return score
 
 
+def prepare_review_packet(
+    report_path: Path, packet_path: Path, template_path: Path
+) -> dict[str, Any]:
+    """Write evidence packet and blank decision template; refuse overwrite."""
+    if packet_path == template_path:
+        raise ValueError("Packet and template paths must differ")
+    if packet_path.exists() or template_path.exists():
+        raise FileExistsError("Review packet/template already exists")
+    report_bytes = report_path.read_bytes()
+    report = ResearchReport.model_validate_json(report_bytes)
+    packet = build_review_packet(report, report_bytes)
+    template = build_review_template(report, report_bytes)
+    packet_path.parent.mkdir(parents=True, exist_ok=True)
+    template_path.parent.mkdir(parents=True, exist_ok=True)
+    _json_file(packet_path, packet)
+    _json_file(template_path, template)
+    return {
+        "packet_status": "unreviewed",
+        "claims_total": len(report.claims),
+        "report_sha256": packet["report_sha256"],
+        "packet_path": str(packet_path),
+        "template_path": str(template_path),
+    }
+
+
+def assess_review_gate(
+    report_path: Path, labels_path: Path, output_path: Path
+) -> dict[str, Any]:
+    """Evaluate caller-supplied decisions without re-running model or retrieval."""
+    if output_path.exists():
+        raise FileExistsError(output_path)
+    report_bytes = report_path.read_bytes()
+    report = ResearchReport.model_validate_json(report_bytes)
+    manifest = ReviewManifest.model_validate(_read_json(labels_path))
+    gate = evaluate_review_gate(report, report_bytes, manifest)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _json_file(output_path, gate)
+    return gate
+
+
 class _LazyLangChainExtractor:
     """Delay endpoint/model initialization until after retrieval is captured."""
 
@@ -382,6 +424,14 @@ def _parser() -> argparse.ArgumentParser:
     review.add_argument("--report", required=True, type=Path)
     review.add_argument("--labels", required=True, type=Path)
     review.add_argument("--output", required=True, type=Path)
+    packet = sub.add_parser("review-packet")
+    packet.add_argument("--report", required=True, type=Path)
+    packet.add_argument("--packet", required=True, type=Path)
+    packet.add_argument("--template", required=True, type=Path)
+    gate = sub.add_parser("review-gate")
+    gate.add_argument("--report", required=True, type=Path)
+    gate.add_argument("--labels", required=True, type=Path)
+    gate.add_argument("--output", required=True, type=Path)
     return parser
 
 
@@ -391,6 +441,10 @@ def main(argv: list[str] | None = None) -> int:
         metrics = replay_run(args.run_dir, args.output_dir, engine=args.engine)
     elif args.command == "review":
         metrics = review_run(args.report, args.labels, args.output)
+    elif args.command == "review-packet":
+        metrics = prepare_review_packet(args.report, args.packet, args.template)
+    elif args.command == "review-gate":
+        metrics = assess_review_gate(args.report, args.labels, args.output)
     elif args.command == "oracle-fixture":
         gold = load_snapshot()
         request = ResearchRequest.model_validate(gold["request"])
