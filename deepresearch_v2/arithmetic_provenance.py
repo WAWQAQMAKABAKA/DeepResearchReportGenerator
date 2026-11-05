@@ -260,7 +260,10 @@ def classify_case(
     if case.id != parent.id or prediction.answer != parent.model_answer:
         raise ValueError("Parent audit does not match source case and prediction")
     measure = _single_number_measurement(prediction.answer, case.question)
-    literal = source_literal_check(prediction, case, measure)
+    # Preserve parent-v1 literal semantics for integrity checking. V2's
+    # separate conservative scalar reader must not rewrite history.
+    legacy_measure = parse_measurement(prediction.answer, case.question)
+    literal = source_literal_check(prediction, case, legacy_measure)
     if literal != parent.answer_numeric_literal_in_cited_evidence:
         raise ValueError("Parent audit literal diagnostic mismatch")
     formula = find_formula(case, prediction)
