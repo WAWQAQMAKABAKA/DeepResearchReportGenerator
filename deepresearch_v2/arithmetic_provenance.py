@@ -115,6 +115,13 @@ def _source_values(excerpts: list[Excerpt]) -> set[Decimal]:
     }
 
 
+def _single_number_measurement(answer: str, question: str):
+    """Conservative: never grade an answer with extra numbers as one scalar."""
+    if len(list(NUM_PATTERN.finditer(answer))) != 1:
+        return None
+    return parse_measurement(answer, question)
+
+
 def _make_formula(
     name: FormulaCheck.model_fields["formula"].annotation,
     operands: list[Decimal],
@@ -127,7 +134,7 @@ def _make_formula(
     cited = _cited(case, prediction)
     numbers = _source_values(cited)
     present = bool(cited) and all(value in numbers for value in operands)
-    reported = parse_measurement(prediction.answer, case.question)
+    reported = _single_number_measurement(prediction.answer, case.question)
     reported_value = reported.amount if reported is not None else None
     relation: ArithmeticRelation = "not_checked"
     if present and reported is not None and reported.unit == expected_unit:
@@ -252,7 +259,7 @@ def classify_case(
 ) -> ProvenanceCase:
     if case.id != parent.id or prediction.answer != parent.model_answer:
         raise ValueError("Parent audit does not match source case and prediction")
-    measure = parse_measurement(prediction.answer, case.question)
+    measure = _single_number_measurement(prediction.answer, case.question)
     literal = source_literal_check(prediction, case, measure)
     if literal != parent.answer_numeric_literal_in_cited_evidence:
         raise ValueError("Parent audit literal diagnostic mismatch")
