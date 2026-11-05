@@ -18,6 +18,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from .evidence_preview import preview_files
 from .core import (ExtractionBatch, ResearchReport, ResearchRequest, Source,
                    candidate_rejection_reason, markdown_table, run_research)
 from .live import LangChainExtractor, PROMPT_VERSION, TavilyRetriever
@@ -242,6 +243,9 @@ def _save_result(
         + markdown_table(report) + "\n", encoding="utf-8",
     )
     _json_file(run_dir / "evaluation.json", metrics)
+    # M2.7: automatically attach a non-publishable, evidence-status preview
+    # to every completed capture/replay; never mark lexical matches verified.
+    preview_files((run_dir / "report.json").read_bytes(), run_dir, existing_dir=True)
     return metrics
 
 
@@ -432,6 +436,10 @@ def _parser() -> argparse.ArgumentParser:
     gate.add_argument("--report", required=True, type=Path)
     gate.add_argument("--labels", required=True, type=Path)
     gate.add_argument("--output", required=True, type=Path)
+    preview = sub.add_parser("report-preview")
+    preview.add_argument("--report", required=True, type=Path)
+    preview.add_argument("--output-dir", required=True, type=Path)
+    preview.add_argument("--review-labels", type=Path, default=None)
     return parser
 
 
@@ -445,6 +453,20 @@ def main(argv: list[str] | None = None) -> int:
         metrics = prepare_review_packet(args.report, args.packet, args.template)
     elif args.command == "review-gate":
         metrics = assess_review_gate(args.report, args.labels, args.output)
+    elif args.command == "report-preview":
+        raw = args.report.read_bytes()
+        manifest = (ReviewManifest.model_validate_json(
+            args.review_labels.read_bytes()
+        ) if args.review_labels is not None else None)
+        evidence_preview = preview_files(raw, args.output_dir, manifest)
+        metrics = {
+            "schema_version": "m2.7-evidence-preview-v1",
+            "report_sha256": evidence_preview.report_sha256,
+            "review_status": evidence_preview.review_status,
+            "comparison_slots": len(evidence_preview.comparison_rows),
+            "status_counts": evidence_preview.status_counts,
+            "publication_ready": False,
+        }
     elif args.command == "oracle-fixture":
         gold = load_snapshot()
         request = ResearchRequest.model_validate(gold["request"])
